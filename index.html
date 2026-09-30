@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title></title>
+<title>Signal</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%;overflow:hidden}
@@ -28,22 +28,41 @@
   .bars{
     display:flex;gap:10px;align-items:flex-end;
     height:180px;
-    position:relative;
   }
   .bars span{
     width:28px;background:#141414;border-radius:2px;
     display:block;
-    transition:background .15s,box-shadow .15s;
+    transition:background .08s ease,box-shadow .08s ease;
   }
-  .bars span:nth-child(1){height:45px}
-  .bars span:nth-child(2){height:90px}
-  .bars span:nth-child(3){height:135px}
-  .bars span:nth-child(4){height:180px}
+  .bars .b1{height:45px}
+  .bars .b2{height:90px}
+  .bars .b3{height:135px}
+  .bars .b4{height:180px}
 
-  .bars[data-level="1"] span:nth-child(-n+1){background:#6a6a6a;box-shadow:0 0 16px rgba(255,255,255,.25)}
-  .bars[data-level="2"] span:nth-child(-n+2){background:#9a9a9a;box-shadow:0 0 18px rgba(255,255,255,.35)}
-  .bars[data-level="3"] span:nth-child(-n+3){background:#d0d0d0;box-shadow:0 0 22px rgba(255,255,255,.5)}
-  .bars[data-level="4"] span:nth-child(-n+4){background:#fff;box-shadow:0 0 28px #fff,0 0 56px rgba(255,255,255,.6)}
+  .bars[data-level="0"] span{background:#141414;box-shadow:none}
+
+  .bars[data-level="1"] .b1{
+    background:#b0b0b0;
+    box-shadow:0 0 20px rgba(255,255,255,.55);
+  }
+
+  .bars[data-level="2"] .b1,
+  .bars[data-level="2"] .b2{
+    background:#c8c8c8;
+    box-shadow:0 0 22px rgba(255,255,255,.6);
+  }
+
+  .bars[data-level="3"] .b1,
+  .bars[data-level="3"] .b2,
+  .bars[data-level="3"] .b3{
+    background:#e0e0e0;
+    box-shadow:0 0 24px rgba(255,255,255,.7);
+  }
+
+  .bars[data-level="4"] span{
+    background:#fff;
+    box-shadow:0 0 28px #fff,0 0 56px rgba(255,255,255,.6);
+  }
 
   .readout{
     display:flex;flex-direction:column;align-items:center;gap:6px;
@@ -192,10 +211,10 @@
     main{gap:24px;padding:20px}
     .bars{height:140px}
     .bars span{width:22px}
-    .bars span:nth-child(1){height:35px}
-    .bars span:nth-child(2){height:70px}
-    .bars span:nth-child(3){height:105px}
-    .bars span:nth-child(4){height:140px}
+    .bars .b1{height:35px}
+    .bars .b2{height:70px}
+    .bars .b3{height:105px}
+    .bars .b4{height:140px}
     .readout .value{font-size:84px}
   }
 
@@ -214,11 +233,11 @@
 <body>
 
 <main>
-  <div class="bars" id="bars">
-    <span></span>
-    <span></span>
-    <span></span>
-    <span></span>
+  <div class="bars" id="bars" data-level="0">
+    <span class="b1"></span>
+    <span class="b2"></span>
+    <span class="b3"></span>
+    <span class="b4"></span>
   </div>
 
   <div class="readout">
