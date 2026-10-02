@@ -1,599 +1,275 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Signal</title>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;overflow:hidden}
-  body{
-    background:#000;color:#fff;
-    font:13px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-    display:grid;grid-template-rows:1fr auto;
-    height:100vh;
-    -webkit-tap-highlight-color:transparent;
-    user-select:none;
-    -webkit-font-smoothing:antialiased;
-  }
-
-  main{
-    display:flex;flex-direction:column;
-    align-items:center;justify-content:center;
-    gap:32px;padding:32px 20px;
-    position:relative;
-    overflow:hidden;
-  }
-
-  .bars{
-    display:flex;gap:10px;align-items:flex-end;
-    height:180px;
-  }
-  .bars span{
-    width:28px;background:#141414;border-radius:2px;
-    display:block;
-    transition:background .08s ease,box-shadow .08s ease;
-  }
-  .bars .b1{height:45px}
-  .bars .b2{height:90px}
-  .bars .b3{height:135px}
-  .bars .b4{height:180px}
-
-  .bars[data-level="0"] span{background:#141414;box-shadow:none}
-
-  .bars[data-level="1"] .b1{
-    background:#b0b0b0;
-    box-shadow:0 0 20px rgba(255,255,255,.55);
-  }
-
-  .bars[data-level="2"] .b1,
-  .bars[data-level="2"] .b2{
-    background:#c8c8c8;
-    box-shadow:0 0 22px rgba(255,255,255,.6);
-  }
-
-  .bars[data-level="3"] .b1,
-  .bars[data-level="3"] .b2,
-  .bars[data-level="3"] .b3{
-    background:#e0e0e0;
-    box-shadow:0 0 24px rgba(255,255,255,.7);
-  }
-
-  .bars[data-level="4"] span{
-    background:#fff;
-    box-shadow:0 0 28px #fff,0 0 56px rgba(255,255,255,.6);
-  }
-
-  .readout{
-    display:flex;flex-direction:column;align-items:center;gap:6px;
-  }
-  .readout .value{
-    font-size:112px;font-weight:200;
-    letter-spacing:-.05em;line-height:1;
-    font-variant-numeric:tabular-nums;
-    transition:color .2s;
-  }
-  .readout .value[data-tone="hi"]{color:#fff;text-shadow:0 0 40px rgba(255,255,255,.35)}
-  .readout .value[data-tone="md"]{color:#cfcfcf}
-  .readout .value[data-tone="lo"]{color:#8a8a8a}
-  .readout .value[data-tone="off"]{color:#555}
-  .readout .unit{
-    font-size:11px;letter-spacing:.5em;
-    text-transform:uppercase;color:#666;
-    padding-left:.5em;
-  }
-  .readout .label{
-    margin-top:8px;
-    font-size:12px;letter-spacing:.35em;text-transform:uppercase;
-    color:#fff;font-weight:500;
-    transition:opacity .2s;
-  }
-
-  .scale{
-    width:min(440px,92vw);
-    display:flex;flex-direction:column;gap:10px;
-  }
-  .scale .label{
-    display:flex;justify-content:space-between;
-    font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#555;
-  }
-  .scale .label b{color:#fff;font-weight:500}
-
-  .meter{
-    height:3px;background:#1a1a1a;border-radius:2px;
-    overflow:hidden;position:relative;
-  }
-  .meter i{
-    position:absolute;top:0;left:0;bottom:0;
-    width:0%;background:#fff;border-radius:2px;
-    transition:width .25s ease;
-    box-shadow:0 0 12px rgba(255,255,255,.7);
-  }
-
-  .track{
-    display:flex;gap:2px;height:14px;
-    width:min(440px,92vw);
-  }
-  .track i{
-    flex:1;background:#141414;border-radius:1px;
-    transition:background .12s;
-  }
-  .track i.g{background:#fff;box-shadow:0 0 6px rgba(255,255,255,.7)}
-  .track i.m{background:#666}
-  .track i.x{background:#2a2a2a}
-
-  .stats{
-    display:grid;grid-template-columns:repeat(4,1fr);
-    width:min(520px,92vw);
-    border-top:1px solid #1f1f1f;
-    border-bottom:1px solid #1f1f1f;
-  }
-  .stats > div{
-    padding:14px 8px;text-align:center;
-    border-right:1px solid #1f1f1f;
-  }
-  .stats > div:last-child{border-right:0}
-  .stats .k{
-    font-size:9px;letter-spacing:.22em;text-transform:uppercase;
-    color:#555;margin-bottom:6px;
-  }
-  .stats .v{
-    font-size:15px;font-weight:500;color:#fff;
-    font-variant-numeric:tabular-nums;
-    transition:color .2s;
-  }
-  .stats .v[data-tone="lo"]{color:#8a8a8a}
-  .stats .v[data-tone="off"]{color:#555}
-
-  footer{
-    padding:14px 20px;
-    border-top:1px solid #1f1f1f;
-    display:flex;align-items:center;justify-content:space-between;
-    gap:16px;
-    background:#000;
-  }
-
-  .status{
-    display:flex;align-items:center;gap:10px;
-    font-size:11px;letter-spacing:.1em;text-transform:uppercase;
-    color:#666;
-    min-width:0;
-    flex:1;
-  }
-  .status .dot{
-    width:6px;height:6px;border-radius:50%;background:#2a2a2a;
-    flex-shrink:0;
-    transition:background .2s;
-  }
-  .status .dot[data-live="1"]{
-    background:#fff;
-    box-shadow:0 0 10px #fff,0 0 20px rgba(255,255,255,.5);
-    animation:blip 1s ease-in-out infinite;
-  }
-  @keyframes blip{
-    0%,100%{opacity:1}
-    50%{opacity:.35}
-  }
-  .status .text{
-    color:#fff;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .status .text em{font-style:normal;color:#666;font-weight:400}
-
-  .actions{display:flex;gap:8px;flex-shrink:0}
-
-  button{
-    background:transparent;
-    border:1px solid #333;
-    color:#888;
-    font:inherit;
-    font-size:11px;
-    letter-spacing:.2em;
-    text-transform:uppercase;
-    padding:9px 20px;
-    border-radius:2px;
-    cursor:pointer;
-    transition:all .15s;
-  }
-  button:hover:not(:disabled){
-    color:#fff;
-    border-color:#fff;
-  }
-  button[data-primary]{
-    border-color:#fff;color:#fff;
-  }
-  button[data-primary]:hover:not(:disabled){
-    background:#fff;color:#000;
-  }
-  button:disabled{opacity:.3;cursor:not-allowed}
-
-  @media (max-height:720px){
-    main{gap:24px;padding:20px}
-    .bars{height:140px}
-    .bars span{width:22px}
-    .bars .b1{height:35px}
-    .bars .b2{height:70px}
-    .bars .b3{height:105px}
-    .bars .b4{height:140px}
-    .readout .value{font-size:84px}
-  }
-
-  @media (max-height:560px){
-    main{gap:16px;padding:14px}
-    .bars{height:100px}
-    .readout .value{font-size:64px}
-    .stats .v{font-size:13px}
-  }
-
-  @media (max-width:420px){
-    .readout .value{font-size:88px}
-  }
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:#000;color:#fff;font:13px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;display:grid;grid-template-rows:1fr auto;height:100%;user-select:none;-webkit-tap-highlight-color:transparent;padding-top:env(safe-area-inset-top,0px)}
+main{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:20px;overflow:hidden}
+.bars{display:flex;gap:10px;align-items:flex-end;height:130px}
+.bars span{width:24px;background:#141414;border-radius:2px;transition:background .06s,box-shadow .06s}
+.b1{height:32px}.b2{height:65px}.b3{height:98px}.b4{height:130px}
+.bars[data-level="1"] .b1{background:#b0b0b0;box-shadow:0 0 20px rgba(255,255,255,.55)}
+.bars[data-level="2"] .b1,.bars[data-level="2"] .b2{background:#c8c8c8;box-shadow:0 0 22px rgba(255,255,255,.6)}
+.bars[data-level="3"] .b1,.bars[data-level="3"] .b2,.bars[data-level="3"] .b3{background:#e0e0e0;box-shadow:0 0 24px rgba(255,255,255,.7)}
+.bars[data-level="4"] span{background:#fff;box-shadow:0 0 28px #fff,0 0 56px rgba(255,255,255,.6)}
+.readout{display:flex;flex-direction:column;align-items:center;gap:4px}
+.value{font-size:92px;font-weight:200;letter-spacing:-.05em;line-height:1;font-variant-numeric:tabular-nums}
+.value[data-tone=hi]{color:#fff;text-shadow:0 0 40px rgba(255,255,255,.35)}
+.value[data-tone=md]{color:#cfcfcf}.value[data-tone=lo]{color:#8a8a8a}.value[data-tone=off]{color:#555}
+.unit{font-size:11px;letter-spacing:.5em;text-transform:uppercase;color:#666;padding-left:.5em}
+#label{margin-top:6px;font-size:12px;letter-spacing:.35em;text-transform:uppercase;font-weight:500}
+.scale{width:min(480px,92vw);display:flex;flex-direction:column;gap:8px}
+.scale .l{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#555}
+.scale b{color:#fff;font-weight:500}
+.meter{height:3px;background:#1a1a1a;border-radius:2px;overflow:hidden;position:relative}
+.meter i{position:absolute;inset:0 auto 0 0;width:0;background:#fff;box-shadow:0 0 12px rgba(255,255,255,.7);transition:width .15s}
+.track{display:flex;gap:2px;height:12px;width:min(480px,92vw)}
+.track i{flex:1;background:#141414;border-radius:1px}
+.track i.g{background:#fff;box-shadow:0 0 6px rgba(255,255,255,.7)}.track i.m{background:#666}.track i.x{background:#2a2a2a}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);width:min(520px,92vw);border-top:1px solid #1f1f1f}
+.stats>div{padding:11px 6px;text-align:center;border-right:1px solid #1f1f1f;border-bottom:1px solid #1f1f1f}
+.stats>div:nth-child(3n){border-right:0}
+.k{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:#555;margin-bottom:5px}
+.v{font-size:15px;font-weight:500;font-variant-numeric:tabular-nums;transition:color .2s}
+.v[data-tone=lo]{color:#8a8a8a}.v[data-tone=off]{color:#555}
+.big .v{font-size:22px}
+#tip{width:min(520px,92vw);text-align:center;font-size:11px;color:#888;min-height:30px}
+footer{padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid #1f1f1f;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.status{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#666;min-width:0;flex:1}
+.dot{width:6px;height:6px;border-radius:50%;background:#2a2a2a;flex-shrink:0}
+.dot[data-live="1"]{background:#fff;box-shadow:0 0 10px #fff;animation:blip 1s infinite}
+@keyframes blip{50%{opacity:.35}}
+#statusText{color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.actions{display:flex;gap:6px;flex-shrink:0}
+button{background:transparent;border:1px solid #333;color:#888;font:inherit;font-size:11px;letter-spacing:.15em;text-transform:uppercase;padding:9px 8px;border-radius:2px;cursor:pointer}
+button:hover:not(:disabled){color:#fff;border-color:#fff}
+button[data-primary]{border-color:#fff;color:#fff}
+button.on{background:#fff;color:#000;border-color:#fff}
+button:disabled{opacity:.3;cursor:not-allowed}
+@media (max-height:760px){main{gap:14px;padding:12px}.bars{height:90px}.b1{height:22px}.b2{height:45px}.b3{height:68px}.b4{height:90px}.value{font-size:68px}#tip{display:none}}
 </style>
 </head>
 <body>
-
 <main>
-  <div class="bars" id="bars" data-level="0">
-    <span class="b1"></span>
-    <span class="b2"></span>
-    <span class="b3"></span>
-    <span class="b4"></span>
-  </div>
-
+  <div class="bars" id="bars" data-level="0"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
   <div class="readout">
     <div class="value" id="value" data-tone="off">—</div>
     <div class="unit">dBm</div>
-    <div class="label" id="label">no data</div>
+    <div id="label">no data</div>
   </div>
-
-  <div class="scale">
-    <div class="label">
-      <span>quality</span>
-      <b id="qval">—</b>
-    </div>
-    <div class="meter"><i id="qfill"></i></div>
-  </div>
-
+  <div class="scale"><div class="l"><span>quality</span><b id="qval">—</b></div><div class="meter"><i id="qfill"></i></div></div>
   <div class="track" id="track"></div>
-
   <div class="stats">
-    <div>
-      <div class="k">ping</div>
-      <div class="v" id="sPing">—</div>
-    </div>
-    <div>
-      <div class="k">jitter</div>
-      <div class="v" id="sJit">—</div>
-    </div>
-    <div>
-      <div class="k">loss</div>
-      <div class="v" id="sLoss">—</div>
-    </div>
-    <div>
-      <div class="k">rate</div>
-      <div class="v" id="sRate">—</div>
-    </div>
+    <div class="big"><div class="k">loss</div><div class="v" id="sLoss">—</div></div>
+    <div class="big"><div class="k">good net</div><div class="v" id="sGood">—</div></div>
+    <div class="big"><div class="k">peak</div><div class="v" id="sPeak">—</div></div>
+    <div><div class="k">ping</div><div class="v" id="sPing">—</div></div>
+    <div><div class="k">jitter</div><div class="v" id="sJit">—</div></div>
+    <div><div class="k">rate</div><div class="v" id="sRate">—</div></div>
+    <div><div class="k">download</div><div class="v" id="sDown">—</div></div>
+    <div><div class="k">upload</div><div class="v" id="sUp">—</div></div>
+    <div><div class="k">delay min</div><div class="v" id="sDel">—</div></div>
   </div>
+  <div id="tip"></div>
 </main>
-
 <footer>
-  <div class="status">
-    <span class="dot" id="dot"></span>
-    <span class="text" id="statusText">idle</span>
-  </div>
+  <div class="status"><span class="dot" id="dot"></span><span id="statusText">idle</span></div>
   <div class="actions">
+    <button id="test" title="Zmierz download i upload">Test</button>
+    <button id="boost" title="Tryb szukania zasięgu: szybkie próby + dźwięk">Boost</button>
     <button id="pause" disabled>Pause</button>
     <button id="start" data-primary>Start</button>
   </div>
 </footer>
-
 <script>
 (() => {
   "use strict";
-
   const $ = id => document.getElementById(id);
   const fmt = (v, d = 0) => Number.isFinite(v) ? v.toFixed(d) : "—";
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const wait = ms => new Promise(r => setTimeout(r, ms));
-
-  const feeds = [
-    "https://speed.cloudflare.com/__down?bytes=1",
-    "https://httpbin.org/delay/0",
-    "https://cloudflare.com/cdn-cgi/trace",
-    "https://speed.cloudflare.com/__down?bytes=2",
-    "https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"
-  ];
-
-  const opts = {
-    gap: 150,
-    timeout: 3000,
-    smooth: 0.3,
-    stale: 5000,
-    jitterWindow: 8,
-    trackLength: 80,
-    lossWindow: 40
-  };
-
-  const s = {
-    smoothed: { q: null, ping: null },
-    lastSuccess: 0,
-    feedIndex: 0,
-    rateWindow: [],
-    jitterBuffer: [],
-    lossWindow: []
-  };
+  const feeds = ["https://speed.cloudflare.com/__down?bytes=1","https://cloudflare.com/cdn-cgi/trace","https://speed.cloudflare.com/__down?bytes=2","https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"];
+  const opts = { gap: 40, boostGap: 0, boostPar: 3, timeout: 2000, smooth: 0.55, stale: 4000, jitterWindow: 8, trackLength: 80, lossWindow: 40, goodWindow: 60, goodMs: 150 };
+  const s = { sm: { q: null, ping: null }, last: 0, fi: 0, rate: [], jit: [], loss: [], good: [], peak: null };
+  let stopped = true, boost = false, actx = null, lastTest = 0;
+  const sp = { down: null, up: null, busy: false };
 
   function quality({ effectiveType, downlink, rtt, probed, jitter, loss }) {
-    let score = 0, weight = 0;
-
-    const effTiers = { "slow-2g": 0.15, "2g": 0.35, "3g": 0.65, "4g": 0.95 };
-    score += (effectiveType && effTiers[effectiveType] != null ? effTiers[effectiveType] : 0.5) * 30;
-    weight += 30;
-
-    score += (downlink != null && downlink > 0
-      ? Math.sqrt(Math.min(1, downlink / 200))
-      : 0.5) * 15;
-    weight += 15;
-
-    score += (rtt != null && rtt > 0
-      ? clamp((500 - rtt) / 490, 0, 1)
-      : 0.5) * 10;
-    weight += 10;
-
-    if (probed != null) {
-      score += Math.pow(clamp((600 - probed) / 585, 0, 1), 0.7) * 30;
-      weight += 30;
-    }
-    if (jitter != null) {
-      score += clamp((150 - jitter) / 150, 0, 1) * 15;
-      weight += 15;
-    }
-    if (loss != null && loss > 0) score -= loss * 30;
-
-    return weight > 0 ? clamp(Math.round(score / weight * 100), 0, 100) : 0;
+    let score = 0, w = 0;
+    const tiers = { "slow-2g": .15, "2g": .35, "3g": .65, "4g": .95 };
+    score += (tiers[effectiveType] ?? .5) * 30; w += 30;
+    score += (downlink > 0 ? Math.sqrt(Math.min(1, downlink / 200)) : .5) * 15; w += 15;
+    score += (rtt > 0 ? clamp((500 - rtt) / 490, 0, 1) : .5) * 10; w += 10;
+    if (probed != null) { score += Math.pow(clamp((600 - probed) / 585, 0, 1), .7) * 30; w += 30; }
+    if (jitter != null) { score += clamp((150 - jitter) / 150, 0, 1) * 15; w += 15; }
+    if (loss > 0) score -= loss * 30;
+    return clamp(Math.round(score / w * 100), 0, 100);
   }
-
-  const toDbm = q => q == null ? null : Math.round(-120 + q * 0.7);
-
-  function toLevel(q) {
-    if (q == null) return 0;
-    if (q >= 78) return 4;
-    if (q >= 55) return 3;
-    if (q >= 33) return 2;
-    if (q >= 12) return 1;
-    return 0;
-  }
-
-  function toWord(q) {
-    if (q == null) return "no data";
-    if (q >= 78) return "strong";
-    if (q >= 55) return "good";
-    if (q >= 33) return "fair";
-    if (q >= 12) return "weak";
-    return "very weak";
-  }
-
-  function toTone(dbm) {
-    if (dbm == null) return "off";
-    if (dbm >= -70) return "hi";
-    if (dbm >= -85) return "md";
-    if (dbm >= -100) return "lo";
-    return "off";
-  }
+  const toDbm = q => q == null ? null : Math.round(-120 + q * .7);
+  const toLevel = q => q == null ? 0 : q >= 78 ? 4 : q >= 55 ? 3 : q >= 33 ? 2 : q >= 12 ? 1 : 0;
+  const toWord = q => q == null ? "no data" : q >= 78 ? "strong" : q >= 55 ? "good" : q >= 33 ? "fair" : q >= 12 ? "weak" : "very weak";
+  const toTone = d => d == null ? "off" : d >= -70 ? "hi" : d >= -85 ? "md" : d >= -100 ? "lo" : "off";
+  const pct = (v, hiBad) => v == null ? "off" : hiBad ? (v === 0 ? "hi" : v < .05 ? "md" : "lo") : (v >= .8 ? "hi" : v >= .5 ? "md" : "lo");
 
   function connection() {
     const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    return {
-      supported: !!c,
-      effectiveType: c?.effectiveType || "unknown",
-      downlink: c?.downlink ?? null,
-      rtt: c?.rtt ?? null,
-      online: navigator.onLine
-    };
+    return { supported: !!c, effectiveType: c?.effectiveType || "unknown", downlink: c?.downlink ?? null, rtt: c?.rtt ?? null, online: navigator.onLine };
   }
-
   function buildTrack() {
-    const el = $("track");
-    const frag = document.createDocumentFragment();
-    for (let i = 0; i < opts.trackLength; i++) frag.appendChild(document.createElement("i"));
-    el.replaceChildren(frag);
+    const f = document.createDocumentFragment();
+    for (let i = 0; i < opts.trackLength; i++) f.appendChild(document.createElement("i"));
+    $("track").replaceChildren(f);
   }
-
   function pushTrack(cls) {
-    const cells = $("track").children;
-    for (let i = 0; i < cells.length - 1; i++) {
-      cells[i].className = cells[i + 1].className;
-    }
-    cells[cells.length - 1].className = cls;
+    const c = $("track").children;
+    for (let i = 0; i < c.length - 1; i++) c[i].className = c[i + 1].className;
+    c[c.length - 1].className = cls;
   }
-
-  function pushJitter(ms) {
-    s.jitterBuffer.push(ms);
-    while (s.jitterBuffer.length > opts.jitterWindow) s.jitterBuffer.shift();
+  const win = (arr, v, n) => { arr.push(v); while (arr.length > n) arr.shift(); };
+  function jitter() {
+    const b = s.jit; if (b.length < 2) return null;
+    let t = 0; for (let i = 1; i < b.length; i++) t += Math.abs(b[i] - b[i - 1]);
+    return t / (b.length - 1);
   }
-
-  function currentJitter() {
-    const b = s.jitterBuffer;
-    if (b.length < 2) return null;
-    let sum = 0;
-    for (let i = 1; i < b.length; i++) sum += Math.abs(b[i] - b[i - 1]);
-    return sum / (b.length - 1);
-  }
-
-  function pushLoss(ok) {
-    s.lossWindow.push(ok ? 0 : 1);
-    while (s.lossWindow.length > opts.lossWindow) s.lossWindow.shift();
-  }
-
-  function currentLoss() {
-    const w = s.lossWindow;
-    if (w.length < 5) return null;
-    let lost = 0;
-    for (const v of w) lost += v;
-    return lost / w.length;
-  }
-
-  function smooth(key, value) {
-    const a = opts.smooth;
-    const prev = s.smoothed[key];
-    s.smoothed[key] = prev == null ? value : prev * (1 - a) + value * a;
-    return s.smoothed[key];
-  }
+  const ratio = (a, min) => a.length < min ? null : a.reduce((x, y) => x + y, 0) / a.length;
+  const smooth = (k, v) => (s.sm[k] = s.sm[k] == null ? v : s.sm[k] * (1 - opts.smooth) + v * opts.smooth);
 
   async function probe() {
-    const url = feeds[s.feedIndex % feeds.length];
-    s.feedIndex++;
-
+    const url = feeds[s.fi++ % feeds.length];
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), opts.timeout);
     const t0 = performance.now();
-
-    s.rateWindow.push(Date.now());
-    while (s.rateWindow.length > 80) s.rateWindow.shift();
-
-    try {
-      const res = await fetch(url, { cache: "no-store", signal: ctrl.signal });
-      const ms = performance.now() - t0;
-      clearTimeout(timer);
-
-      if (!res.ok && res.status !== 204) {
-        pushTrack("x");
-        pushLoss(false);
-        return { ok: false, ms };
-      }
-
-      pushTrack(ms < 80 ? "g" : ms < 250 ? "m" : "x");
-      pushLoss(true);
-      return { ok: true, ms };
-    } catch {
-      clearTimeout(timer);
-      pushTrack("x");
-      pushLoss(false);
-      return { ok: false, ms: performance.now() - t0 };
-    }
+    win(s.rate, Date.now(), 120);
+    let ok = false, ms;
+    try { const r = await fetch(url, { cache: "no-store", signal: ctrl.signal }); ok = r.ok || r.status === 204; }
+    catch {}
+    ms = performance.now() - t0;
+    clearTimeout(timer);
+    pushTrack(ok ? (ms < 80 ? "g" : ms < 250 ? "m" : "x") : "x");
+    win(s.loss, ok ? 0 : 1, opts.lossWindow);
+    win(s.good, ok && ms < opts.goodMs ? 1 : 0, opts.goodWindow);
+    return { ok, ms };
   }
 
-  function paint({ q, ping, jitter, loss, rate }) {
-    $("bars").dataset.level = String(toLevel(q));
+  function beep(q) {
+    if (!boost || !actx || q == null) return;
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.frequency.value = 220 + q * 9;
+    g.gain.setValueAtTime(.08, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + .08);
+    o.connect(g).connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + .09);
+  }
 
+  function tip(q) {
+    if (boost) return q == null ? "Boost: brak sygnału — zmień miejsce." : "Boost: chodź z telefonem po pomieszczeniu — wyższy dźwięk i wyższy PEAK = lepszy zasięg.";
+    if (q == null) return "";
+    if (q >= 78) return "Sygnał świetny. Nic nie trzeba poprawiać.";
+    if (q >= 55) return "Dobry sygnał. Włącz Boost, żeby znaleźć jeszcze lepsze miejsce.";
+    return "Słaby sygnał: podejdź do okna lub wyżej, zdejmij grube etui, włącz tryb samolotowy na 5 s, na Wi‑Fi przejdź na 5 GHz bliżej routera (2.4 GHz ma większy zasięg przez ściany).";
+  }
+
+  function paint({ q, ping, jit, loss, good, rate }) {
+    $("bars").dataset.level = toLevel(q);
     const dbm = toDbm(q);
-    const val = $("value");
-    val.textContent = dbm != null ? dbm : "—";
-    val.dataset.tone = toTone(dbm);
-
+    $("value").textContent = dbm ?? "—";
+    $("value").dataset.tone = toTone(dbm);
     $("label").textContent = toWord(q);
-
-    const qv = q != null ? q : null;
-    $("qval").textContent = qv != null ? qv + " / 100" : "—";
-    $("qfill").style.width = (qv ?? 0) + "%";
-
-    $("sPing").textContent = ping != null ? fmt(ping) + "ms" : "—";
-    $("sPing").dataset.tone = ping == null ? "off" : ping < 100 ? "hi" : ping < 250 ? "md" : "lo";
-
-    $("sJit").textContent = jitter != null ? fmt(jitter, 1) + "ms" : "—";
-    $("sJit").dataset.tone = jitter == null ? "off" : jitter < 15 ? "hi" : jitter < 50 ? "md" : "lo";
-
-    $("sLoss").textContent = loss != null ? (loss * 100).toFixed(loss * 100 < 10 ? 1 : 0) + "%" : "—";
-    $("sLoss").dataset.tone = loss == null ? "off" : loss === 0 ? "hi" : loss < 0.05 ? "md" : "lo";
-
-    $("sRate").textContent = rate != null ? fmt(rate, 1) + "/s" : "—";
-    $("sRate").dataset.tone = "off";
-
-    if (q != null) {
-      $("statusText").innerHTML =
-        `<span>${toWord(q)}</span> <em>·</em> <span>${dbm} dBm</span> <em>·</em> <span>${ping != null ? fmt(ping) + "ms" : "—"}</span>`;
-    }
+    $("qval").textContent = q != null ? q + " / 100" : "—";
+    $("qfill").style.width = (q ?? 0) + "%";
+    const set = (id, txt, tone) => { $(id).textContent = txt; $(id).dataset.tone = tone; };
+    set("sPing", ping != null ? fmt(ping) + "ms" : "—", ping == null ? "off" : ping < 100 ? "hi" : ping < 250 ? "md" : "lo");
+    set("sJit", jit != null ? fmt(jit, 1) + "ms" : "—", jit == null ? "off" : jit < 15 ? "hi" : jit < 50 ? "md" : "lo");
+    set("sLoss", loss != null ? (loss * 100).toFixed(loss * 100 < 10 ? 1 : 0) + "%" : "—", pct(loss, true));
+    set("sGood", good != null ? Math.round(good * 100) + "%" : "—", pct(good, false));
+    set("sRate", rate != null ? fmt(rate, 0) + "/s" : "—", "off");
+    set("sPeak", s.peak != null ? s.peak + "" : "—", s.peak == null ? "off" : "hi");
+    set("sDel", s.jit.length ? fmt(Math.min(...s.jit)) + "ms" : "—", s.jit.length ? "hi" : "off");
+    $("tip").textContent = tip(q);
+    if (q != null) $("statusText").textContent = `${boost ? "boost · " : ""}${toWord(q)} · ${dbm} dBm · ${ping != null ? fmt(ping) + "ms" : "—"}`;
   }
-
-  function setLive(on) {
-    $("dot").dataset.live = on ? "1" : "0";
-  }
-
-  let stopped = true;
+  const setLive = on => { $("dot").dataset.live = on ? "1" : "0"; };
 
   async function loop() {
     while (!stopped) {
-      if (document.hidden) { await wait(400); continue; }
-
+      if (document.hidden) { await wait(300); continue; }
       const net = connection();
-      if (!net.online) {
-        setLive(false);
-        paint({ q: null, ping: null, jitter: null, loss: null, rate: null });
-        await wait(600);
-        continue;
-      }
+      if (!net.online) { setLive(false); paint({}); await wait(400); continue; }
 
-      const r = await probe();
+      const n = boost ? opts.boostPar : 1;
+      const res = await Promise.all(Array.from({ length: n }, probe));
+      let best = null;
+      for (const r of res) if (r.ok) { win(s.jit, r.ms, opts.jitterWindow); smooth("ping", r.ms); s.last = Date.now(); if (best == null || r.ms < best) best = r.ms; }
 
-      let ping = s.smoothed.ping;
-      if (r.ok) {
-        pushJitter(r.ms);
-        s.lastSuccess = Date.now();
-        smooth("ping", r.ms);
-        ping = s.smoothed.ping;
-      }
-
-      const jitter = currentJitter();
-      const loss = currentLoss();
-
-      const rawQ = quality({
-        effectiveType: net.supported ? net.effectiveType : null,
-        downlink: net.downlink,
-        rtt: net.rtt,
-        probed: r.ok ? r.ms : ping,
-        jitter,
-        loss
-      });
-
+      const jit = jitter(), loss = ratio(s.loss, 5), good = ratio(s.good, 5);
+      const rawQ = quality({ effectiveType: net.supported ? net.effectiveType : null, downlink: net.downlink, rtt: net.rtt, probed: best ?? s.sm.ping, jitter: jit, loss });
       const q = Math.round(smooth("q", rawQ));
+      const stale = Date.now() - s.last > opts.stale;
+      const dbm = toDbm(q);
+      if (!stale && dbm != null && (s.peak == null || dbm > s.peak)) s.peak = dbm;
+      const rate = s.rate.filter(t => t > Date.now() - 1000).length;
 
-      const stale = Date.now() - s.lastSuccess > opts.stale;
-      const cutoff = Date.now() - 1000;
-      const rate = s.rateWindow.filter(t => t > cutoff).length;
-
-      paint({
-        q: stale ? null : q,
-        ping: stale ? null : ping,
-        jitter,
-        loss,
-        rate
-      });
-
+      paint({ q: stale ? null : q, ping: stale ? null : s.sm.ping, jit, loss, good, rate });
       setLive(!stale);
-      await wait(opts.gap);
+      beep(stale ? null : q);
+      if (!boost && !stale && Date.now() - lastTest > 20000) { lastTest = Date.now(); speedTest(); }
+      await wait(boost ? opts.boostGap : opts.gap);
     }
+  }
+
+  function showSpeed() {
+    const f = (id, v) => { $(id).textContent = v == null ? "—" : fmt(v, v < 10 ? 1 : 0) + " Mb/s"; $(id).dataset.tone = v == null ? "off" : v >= 25 ? "hi" : v >= 5 ? "md" : "lo"; };
+    f("sDown", sp.down); f("sUp", sp.up);
+  }
+  async function speedTest() {
+    if (sp.busy || !navigator.onLine) return;
+    sp.busy = true; $("test").disabled = true; $("sDown").textContent = $("sUp").textContent = "…";
+    try {
+      const t = performance.now();
+      const r = await fetch("https://speed.cloudflare.com/__down?bytes=3000000&r=" + Math.random(), { cache: "no-store", signal: AbortSignal.timeout(10000) });
+      const b = await r.arrayBuffer();
+      sp.down = b.byteLength * 8 / ((performance.now() - t) / 1000) / 1e6;
+    } catch { sp.down = null; }
+    try {
+      const body = new Uint8Array(1000000), t = performance.now();
+      await fetch("https://speed.cloudflare.com/__up", { method: "POST", body, cache: "no-store", signal: AbortSignal.timeout(10000) });
+      sp.up = body.length * 8 / ((performance.now() - t) / 1000) / 1e6;
+    } catch { sp.up = null; }
+    sp.busy = false; $("test").disabled = false; showSpeed();
   }
 
   function start() {
     if (!stopped) return;
-    stopped = false;
-    s.lastSuccess = Date.now();
-    $("start").disabled = true;
-    $("pause").disabled = false;
+    stopped = false; s.last = Date.now();
+    $("start").disabled = true; $("pause").disabled = false;
     loop();
   }
-
   function pause() {
     stopped = true;
-    $("start").disabled = false;
-    $("pause").disabled = true;
-    setLive(false);
-    $("statusText").textContent = "paused";
+    $("start").disabled = false; $("pause").disabled = true;
+    setLive(false); $("statusText").textContent = "paused";
+  }
+  function toggleBoost() {
+    boost = !boost;
+    $("boost").classList.toggle("on", boost);
+    if (boost) {
+      s.peak = null;
+      try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch { actx = null; }
+      start();
+    }
   }
 
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden && !stopped) s.lastSuccess = Date.now();
-  });
-
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && !stopped) s.last = Date.now(); });
   window.addEventListener("online", () => { if (!stopped) setLive(true); });
   window.addEventListener("offline", () => setLive(false));
+  $("start").onclick = start; $("pause").onclick = pause; $("boost").onclick = toggleBoost;
+  $("test").onclick = () => { lastTest = Date.now(); speedTest(); };
 
-  $("start").addEventListener("click", start);
-  $("pause").addEventListener("click", pause);
-
-  buildTrack();
-  paint({ q: null, ping: null, jitter: null, loss: null, rate: null });
-  start();
+  buildTrack(); paint({}); start();
 })();
 </script>
 </body>
